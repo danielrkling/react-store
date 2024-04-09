@@ -1,0 +1,5 @@
+{
+    "name": "@kling/react-state",
+    "version": "0.1.0",
+    "exports": "./react-state/index.ts"
+  }
