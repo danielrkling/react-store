@@ -178,3 +178,5 @@ export function useEqual<S, U>(
       : (prev.current = next);
   };
 }
+
+export default createStore
