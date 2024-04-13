@@ -1,17 +1,9 @@
-/*
-Inspired by Zustand
-Simplified for use with React 18 only and some personal preferences
-*/
-
 import React from 'react'
 
 interface SetState<T> {
     (set: T | ((prev: T) => T)): T
 }
 
-interface MergeState<T> {
-    (merge: Partial<T> | ((prev: T) => Partial<T>)): T
-}
 
 interface GetState<T> {
     (): T
@@ -28,7 +20,6 @@ interface UseState<T> {
 interface Store<T> {
     set: SetState<T>
     get: GetState<T>
-    merge: MergeState<T>
     use: UseState<T>
 }
 
@@ -77,16 +68,6 @@ export function createStore<T, M extends Mutations<T> = Mutations<T>>(
         return state
     }
 
-    /**
-     * @description Merges the state of the store with a new object or a function that takes the previous state and returns an object to merge
-     * @param merge The object to merge or a function that takes the previous state and returns an object to merge
-     */
-    const merge: MergeState<T> = (merge) => {
-        const newState = merge instanceof Function ? merge(state) : merge;
-        state = { ...state, ...newState }
-        subscriptions.forEach(listener => listener())
-        return state
-    }
 
     /**
      * @description Selects a portion of the state and reacts to changes in that portion
@@ -105,7 +86,7 @@ export function createStore<T, M extends Mutations<T> = Mutations<T>>(
             subscriptions.delete(listener);
         };
     }
-    const store = { get, set, merge, use, subscribe }
+    const store = { get, set, use, subscribe }
 
     let state = initializeState instanceof Function ? initializeState(store) : initialState;
 

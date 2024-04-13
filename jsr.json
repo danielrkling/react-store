@@ -1,5 +1,5 @@
 {
-    "name": "@kling/react-state",
+    "name": "@kling/react-store",
     "version": "0.1.0",
-    "exports": "./react-state/index.ts"
+    "exports": "./index.ts"
   }
