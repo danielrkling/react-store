@@ -1,9 +1,8 @@
 import React from 'react'
 
-interface SetState<T> {
+export interface SetState<T> {
     (set: T | ((prev: T) => T)): T
 }
-
 
 interface GetState<T> {
     (): T
@@ -17,20 +16,24 @@ interface UseState<T> {
     <R>(selector: (state: T) => R, equals: (a: any, b: any) => boolean): R
 }
 
+interface Subscribe<T>{
+    (listener: (state?: T) => void): ()=>void
+}
+
 interface Store<T> {
     set: SetState<T>
     get: GetState<T>
     use: UseState<T>
+    subscribe: Subscribe<T>
 }
 
-type Mutations<T> = { [k: string]: any } & { [K in keyof Store<T>]?: never }
 
 /**
  * Creates a store that manages state and provides methods for setting, getting, and merging state values.
  * @template T The type of the store state
- * @param initialState The initial state of the store
+ * @param [initialState] The initial state of the store
  * @param  [mutations] An optional function that defines custom mutations for the store.
- * @param  [initializeState] An optional function that initializes the state of the store.
+ * @param  [createStatusStore] A flag that creates an additional store to track the status of async mutations
  * @returns The store object, which includes the set, get, merge, and use methods, along with any custom mutations defined by the mutations parameter.
  * @example
  * const booleanStore = createStore(
@@ -39,12 +42,11 @@ type Mutations<T> = { [k: string]: any } & { [K in keyof Store<T>]?: never }
  *  toggle: ()=>set(prev=>!prev)
  * })
  */
-export function createStore<T, M extends Mutations<T> = Mutations<T>>(
-    initialState: T,
-    mutations?: (store: Store<T>) => M,
-    initializeState?: (store: Store<T>) => T
-) {
-    const subscriptions = new Set<() => void>();
+
+export function createStore<T>(
+    initialState?: T,
+): Store<T> {
+    const subscriptions = new Set<(state?: T) => void>();    
 
     /**
      * @description Gets the state of the store
@@ -64,10 +66,9 @@ export function createStore<T, M extends Mutations<T> = Mutations<T>>(
      */
     const set: SetState<T> = (set) => {
         state = set instanceof Function ? set(state) : set;
-        subscriptions.forEach(listener => listener())
+        subscriptions.forEach(listener => listener(state))
         return state
     }
-
 
     /**
      * @description Selects a portion of the state and reacts to changes in that portion
@@ -80,26 +81,26 @@ export function createStore<T, M extends Mutations<T> = Mutations<T>>(
         return React.useSyncExternalStore<T>(subscribe, snapshot);
     }
 
-    function subscribe(listener: () => void) {
+    /**
+     * @description Subscribes a function to the store for non React side effects
+     * @param [listener] An optional selector function to apply to the state
+     * @returns A function that unsubsribes the listener
+     */
+    const subscribe: Subscribe<T> = (listener: (state?: T) => void) => {
         subscriptions.add(listener);
         return () => {
             subscriptions.delete(listener);
         };
     }
-    const store = { get, set, use, subscribe }
 
-    let state = initializeState instanceof Function ? initializeState(store) : initialState;
-
-    const initializedMutations = mutations ? mutations(store) : null as Omit<M, keyof Store<T>>
-
-    return { ...initializedMutations, ...store }
+    let state= initialState
+    return { get, set, use, subscribe }
 }
 
 
 
 
-
-export function useEqual<S, U>(selector: (state: S) => U, equals: (a: any, b: any) => boolean = shallowEqual): (state: S) => U {
+export function useEqual<S, U>(selector: (state: S) => U, equals: (a: any, b: any) => boolean): (state: S) => U {
     const prev = React.useRef<U>()
 
     return (state) => {
@@ -110,81 +111,6 @@ export function useEqual<S, U>(selector: (state: S) => U, equals: (a: any, b: an
     }
 }
 
-/**
- * Checks if two values are equal using JSON stringification
- * @param  a The first value to compare
- * @param  b The second value to compare
- * @returns  True if the values are equal, false otherwise
- */
-export function jsonEqual<T>(a: T, b: T) {
-    return (JSON.stringify(a) === JSON.stringify(b))
-}
-
-/**
- * Checks if two values are equal using JSON stringification
- * @param  a The first value to compare
- * @param  b The second value to compare
- * @returns  True if the values are equal, false otherwise
- */
-export function shallowEqual<T>(a: T, b: T) {
-    if (Object.is(a, b)) {
-        return true
-    }
-    if (
-        typeof a !== 'object' ||
-        a === null ||
-        typeof b !== 'object' ||
-        b === null
-    ) {
-        return false
-    }
-
-    if (a instanceof Map && b instanceof Map) {
-        if (a.size !== b.size) return false
-
-        for (const [key, value] of a) {
-            if (!Object.is(value, b.get(key))) {
-                return false
-            }
-        }
-        return true
-    }
-
-    if (a instanceof Set && b instanceof Set) {
-        if (a.size !== b.size) return false
-
-        for (const value of a) {
-            if (!b.has(value)) {
-                return false
-            }
-        }
-        return true
-    }
-
-    const keysA = Object.keys(a)
-    if (keysA.length !== Object.keys(b).length) {
-        return false
-    }
-    for (let i = 0; i < keysA.length; i++) {
-        if (
-            !Object.prototype.hasOwnProperty.call(b, keysA[i] as string) ||
-            !Object.is(a[keysA[i] as keyof T], b[keysA[i] as keyof T])
-        ) {
-            return false
-        }
-    }
-    return true
-}
 
 
-export function useLocalStore<T>(initialState: T | (() => T)) {
-    const [state, setState] = React.useState(initialState)
 
-    return {
-        state,
-        set: setState,
-        get: () => state,
-        use: () => state,
-        merge: (obj: Partial<T>) => { setState(prev => ({ ...prev, ...obj })) }
-    }
-}
