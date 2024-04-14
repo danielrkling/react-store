@@ -77,9 +77,9 @@ function SetNameButton() {
 - Works well with immer for lots of deeply nested state changes if desired
 
 ```ts
-import { createStore } from "@kling/react-store";
+import { Store } from "@kling/react-store";
 
-const functionStore = createStore(() => console.log("initial function"));
+const functionStore = new Store(() => console.log("initial function"));
 
 functionStore.set(() => () => console.log("second function"));
 ```
