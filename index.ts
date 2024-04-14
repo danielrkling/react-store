@@ -54,7 +54,7 @@ export class Store<T> {
    * ```
    */
   set(setter: (prev: T) => T): T;
-  set(setter: T | ((prev: T) => T)): T {
+  set(setter: T | ((prev: T) => T)) {
     this.state = setter instanceof Function ? setter(this.state) : setter;
     this.subscriptions.forEach((listener) => listener(this.state));
     return this.state;
@@ -89,7 +89,7 @@ export class Store<T> {
    * removeListener()
    * ```
    */
-  subscribe(listener: (state: T) => void) {
+  subscribe(listener: (state: T) => void): ()=> void {
     this.subscriptions.add(listener);
     return () => {
       this.subscriptions.delete(listener);
