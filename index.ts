@@ -76,7 +76,7 @@ export class Store<T> {
   use<R>(selector: (state: T) => any): R;
   use(selector?: (state: T) => any) {
     const snapshot = () => this.get(selector);
-    return useSyncExternalStore<T>(this.subscribe, snapshot);
+    return useSyncExternalStore<T>((listener)=>this.subscribe(listener), snapshot);
   }
 
   /**
