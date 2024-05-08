@@ -76,7 +76,10 @@ export class Store<T> {
   use<R>(selector: (state: T) => any): R;
   use(selector?: (state: T) => any) {
     const snapshot = () => this.get(selector);
-    return useSyncExternalStore<T>((listener)=>this.subscribe(listener), snapshot);
+    return useSyncExternalStore<T>(
+      (listener) => this.subscribe(listener),
+      snapshot
+    );
   }
 
   /**
@@ -89,14 +92,13 @@ export class Store<T> {
    * removeListener()
    * ```
    */
-  subscribe(listener: (state: T) => void): ()=> void {
+  subscribe(listener: (state: T) => void): () => void {
     this.subscriptions.add(listener);
     return () => {
       this.subscriptions.delete(listener);
     };
   }
 }
-
 
 /**
  * Hook to only update state if different using custom equal function
